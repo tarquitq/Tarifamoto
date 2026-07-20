@@ -1,0 +1,22 @@
+MOTO TARIFA - APP WEB INSTALABLE
+
+Archivos:
+- index.html
+- manifest.json
+- sw.js
+
+Para que se pueda instalar como app, debe publicarse en una dirección HTTPS.
+Opciones gratuitas:
+1. GitHub Pages
+2. Netlify
+3. Vercel
+
+Luego, en iPhone:
+- Abrir el enlace en Safari.
+- Compartir.
+- Agregar a pantalla de inicio.
+
+En Android:
+- Abrir el enlace en Chrome.
+- Menú.
+- Instalar aplicación o Agregar a pantalla de inicio.

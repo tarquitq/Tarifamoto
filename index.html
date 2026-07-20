@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <link rel="manifest" href="manifest.json">
+  <title>Moto Tarifa</title>
+  <style>
+    :root{
+      --bg:#f3f4f6; --card:#fff; --text:#111827; --muted:#6b7280;
+      --primary:#111827; --accent:#16a34a; --border:#d1d5db; --soft:#ecfdf5;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+    .app{max-width:580px;margin:auto;padding:18px 14px 90px}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    h1{font-size:25px;margin:0}
+    .tag{font-size:12px;background:#e5e7eb;padding:6px 9px;border-radius:999px}
+    .card{background:var(--card);border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.07);margin-bottom:14px}
+    label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}
+    input,select{width:100%;padding:13px;border:1px solid var(--border);border-radius:11px;font-size:16px;background:#fff}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+    .check{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:14px}
+    .check input{width:auto}
+    button{width:100%;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer}
+    .primary{background:var(--primary);color:#fff;margin-top:18px}
+    .save{background:var(--accent);color:#fff;margin-top:10px}
+    .ghost{background:#eef0f3;color:var(--text);margin-top:10px}
+    .result{display:none;background:var(--soft);border-radius:15px;padding:17px;margin-top:17px}
+    .amount{font-size:38px;font-weight:800;margin:4px 0 8px}
+    .detail{font-size:14px;line-height:1.65;color:#374151}
+    .history-item{border-bottom:1px solid #e5e7eb;padding:12px 0}
+    .history-item:last-child{border-bottom:0}
+    .history-top{display:flex;justify-content:space-between;font-weight:700}
+    .history-meta{font-size:13px;color:var(--muted);margin-top:4px}
+    .empty{font-size:14px;color:var(--muted)}
+    details{margin-top:15px;border-top:1px solid #e5e7eb;padding-top:13px}
+    summary{font-weight:700;cursor:pointer}
+    .footer{font-size:12px;color:var(--muted);line-height:1.5}
+    @media(max-width:430px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>🏍️ Moto Tarifa</h1>
+    <span class="tag">App instalable</span>
+  </div>
+
+  <div class="card">
+    <label>Tipo de servicio</label>
+    <select id="tipo" onchange="cargarTarifa()">
+      <option value="reparto">Reparto / delivery</option>
+      <option value="pasajero">Traslado de pasajero</option>
+    </select>
+
+    <div class="grid">
+      <div>
+        <label>Distancia de Waze (km)</label>
+        <input id="km" type="number" min="0" step="0.1" placeholder="Ej. 8.5">
+      </div>
+      <div>
+        <label>Tiempo de Waze (min)</label>
+        <input id="min" type="number" min="0" step="1" placeholder="Ej. 25">
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <label>Espera (min)</label>
+        <input id="espera" type="number" min="0" step="1" value="0">
+      </div>
+      <div>
+        <label>Recargo (S/)</label>
+        <input id="extra" type="number" min="0" step="0.5" value="0">
+      </div>
+    </div>
+
+    <label class="check">
+      <input id="retorno" type="checkbox"> Considerar ida y retorno
+    </label>
+
+    <details>
+      <summary>Editar tarifas</summary>
+      <div class="grid">
+        <div><label>Base (S/)</label><input id="base" type="number" step="0.1"></div>
+        <div><label>Por km (S/)</label><input id="porKm" type="number" step="0.1"></div>
+      </div>
+      <div class="grid">
+        <div><label>Por minuto (S/)</label><input id="porMin" type="number" step="0.05"></div>
+        <div><label>Espera/min (S/)</label><input id="porEspera" type="number" step="0.05"></div>
+      </div>
+      <label>Cobro mínimo (S/)</label>
+      <input id="minimo" type="number" step="0.5">
+    </details>
+
+    <button class="primary" onclick="calcular()">Calcular tarifa</button>
+
+    <div id="resultado" class="result">
+      <div>Cobro sugerido</div>
+      <div id="total" class="amount">S/ 0.00</div>
+      <div id="detalle" class="detail"></div>
+      <button class="save" onclick="guardarServicio()">Guardar servicio</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="font-size:19px;margin:0">Historial</h2>
+      <button class="ghost" style="width:auto;margin:0;padding:9px 11px" onclick="borrarHistorial()">Borrar</button>
+    </div>
+    <div id="historial" style="margin-top:8px"></div>
+  </div>
+
+  <div class="footer">
+    Usa los datos de tiempo y distancia que te da Waze. La app guarda los servicios en el mismo celular.
+  </div>
+</div>
+
+<script>
+const tarifas = {
+  reparto:{base:4,km:1,min:0.20,espera:0.30,minimo:7},
+  pasajero:{base:5,km:1.50,min:0.20,espera:0.40,minimo:9}
+};
+let ultimoCalculo = null;
+
+function n(id){return parseFloat(document.getElementById(id).value)||0}
+function cargarTarifa(){
+  const t=tarifas[document.getElementById('tipo').value];
+  base.value=t.base; porKm.value=t.km; porMin.value=t.min; porEspera.value=t.espera; minimo.value=t.minimo;
+}
+function calcular(){
+  let km=n('km'), min=n('min');
+  if(km<=0 && min<=0){alert('Ingresa kilómetros o minutos.');return}
+  if(retorno.checked){km*=2;min*=2}
+  const b=n('base'), pk=n('porKm'), pm=n('porMin'), pe=n('porEspera');
+  const esperaMin=n('espera'), extra=n('extra'), minCobro=n('minimo');
+  const subtotal=b+(km*pk)+(min*pm)+(esperaMin*pe)+extra;
+  const total=Math.max(subtotal,minCobro);
+  ultimoCalculo={
+    fecha:new Date().toLocaleString('es-PE'),
+    tipo:tipo.options[tipo.selectedIndex].text,
+    km, min, espera:esperaMin, extra, total
+  };
+  document.getElementById('total').textContent='S/ '+total.toFixed(2);
+  document.getElementById('detalle').innerHTML=
+    `Base: S/ ${b.toFixed(2)}<br>`+
+    `Distancia: ${km.toFixed(1)} km → S/ ${(km*pk).toFixed(2)}<br>`+
+    `Tiempo: ${min.toFixed(0)} min → S/ ${(min*pm).toFixed(2)}<br>`+
+    `Espera y recargos: S/ ${(esperaMin*pe+extra).toFixed(2)}`+
+    (subtotal<minCobro?`<br><strong>Se aplicó el cobro mínimo.</strong>`:'');
+  resultado.style.display='block';
+}
+function guardarServicio(){
+  if(!ultimoCalculo)return;
+  const h=JSON.parse(localStorage.getItem('motoHistorial')||'[]');
+  h.unshift(ultimoCalculo);
+  localStorage.setItem('motoHistorial',JSON.stringify(h.slice(0,50)));
+  renderHistorial();
+  alert('Servicio guardado.');
+}
+function renderHistorial(){
+  const h=JSON.parse(localStorage.getItem('motoHistorial')||'[]');
+  const cont=document.getElementById('historial');
+  if(!h.length){cont.innerHTML='<div class="empty">Todavía no hay servicios guardados.</div>';return}
+  cont.innerHTML=h.map(x=>`
+    <div class="history-item">
+      <div class="history-top"><span>${x.tipo}</span><span>S/ ${Number(x.total).toFixed(2)}</span></div>
+      <div class="history-meta">${x.fecha} · ${Number(x.km).toFixed(1)} km · ${Number(x.min).toFixed(0)} min</div>
+    </div>`).join('');
+}
+function borrarHistorial(){
+  if(confirm('¿Borrar todo el historial?')){
+    localStorage.removeItem('motoHistorial');renderHistorial();
+  }
+}
+cargarTarifa();renderHistorial();
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
+}
+</script>
+</body>
+</html>

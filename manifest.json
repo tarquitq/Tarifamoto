@@ -1,0 +1,9 @@
+{
+  "name": "Moto Tarifa",
+  "short_name": "MotoTarifa",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#111827",
+  "description": "Calculadora de tarifas para reparto y traslado de pasajeros en moto."
+}
